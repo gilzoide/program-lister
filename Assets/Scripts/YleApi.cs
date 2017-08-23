@@ -7,28 +7,30 @@ using UnityEngine.Networking;
 using SimpleJSON;
 
 public class YleApi : MonoBehaviour {
-	[Serializable]
-	public struct RequestArgument {
-		public string key;
-		public string value;
+	// Event to run after a successful call to the Yle API, using the response JSON
+	public class JsonEvent : UnityEvent<JSONNode> {}
 
-		public override string ToString() {
-			return string.Format("{0}={1}", key, value);
-		}
+	// Constant Yle API URI components
+	private const string baseUri = "https://external.api.yle.fi";
+	private const string baseArgs = "?app_id=66ede07d&app_key=86eadbc843d2b7ee59050e659aafd49d&";
+
+	// Run a GET 
+	public void Get(string endpoint, RequestArguments args, JsonEvent onSuccess) {
+		StartCoroutine(ProcessRequest(endpoint, args, onSuccess));
 	}
 
-	public RequestArgument[] args;
-
-	public void Get(string uri, UnityEvent<JSONNode> onSuccess) {
-		StartCoroutine(ProcessRequest(uri, onSuccess));
+	// Build the full URI for an endpoint in Yle API
+	public string MakeUri(string endpoint, RequestArguments args) {
+		return baseUri + endpoint + baseArgs + args;
 	}
 
-	private IEnumerator ProcessRequest(string uri, UnityEvent<JSONNode> onSuccess) {
-		using(UnityWebRequest www = UnityWebRequest.Get(uri)) {
+	private IEnumerator ProcessRequest(string endpoint, RequestArguments args, JsonEvent onSuccess) {
+		using(UnityWebRequest www = UnityWebRequest.Get(MakeUri(endpoint, args))) {
 			yield return www.Send();
+
 			//if(www.isNetworkError || www.isHttpError) {
 			if(www.isError) {
-				Debug.Log(www.error);
+				Debug.LogError(www.error);
 			}
 			else {
 				onSuccess.Invoke(JSON.Parse(www.downloadHandler.text));
