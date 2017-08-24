@@ -13,9 +13,11 @@ public class ProgramList : MonoBehaviour {
 
 	private uint searchOffset = 0;
 	private YleApi.JsonEvent onSuccess = new YleApi.JsonEvent();
+	private RectTransform rt;
 
 	void Start() {
 		onSuccess.AddListener(InitializeList);
+		rt = GetComponent<RectTransform>();
 	}
 
 	public void Search() {
@@ -38,7 +40,20 @@ public class ProgramList : MonoBehaviour {
 		// Debug.Log(data);
 		for(int i = 0; i < data.Count; i++) {
 			var obj = Object.Instantiate(entryPrefab, transform);
+			if(!data[i]["title"]["fi"]) {
+				Debug.Log(data[i]["title"]);
+			}
 			obj.GetComponent<Text>().text = data[i]["title"]["fi"].Value;
 		}
+
+		StartCoroutine(UpdateHeight());
+	}
+
+	// Update content height based on last child's position
+	private IEnumerator UpdateHeight() {
+		var lastRt = transform.GetChild(transform.childCount - 1).GetComponent<RectTransform>();
+		// Vertical Layout will only be applied after Update phase, so wait a little
+		yield return new WaitForEndOfFrame();
+		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -lastRt.anchoredPosition.y + lastRt.rect.height);
 	}
 }
