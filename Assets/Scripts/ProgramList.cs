@@ -40,10 +40,7 @@ public class ProgramList : MonoBehaviour {
 		// Debug.Log(data);
 		for(int i = 0; i < data.Count; i++) {
 			var obj = Object.Instantiate(entryPrefab, transform);
-			if(!data[i]["title"]["fi"]) {
-				Debug.Log(data[i]["title"]);
-			}
-			obj.GetComponent<Text>().text = data[i]["title"]["fi"].Value;
+			obj.GetComponent<Text>().text = data[i]["title"][0].Value;
 		}
 
 		StartCoroutine(UpdateHeight());
