@@ -11,38 +11,41 @@ public class ProgramList : MonoBehaviour {
 	public GameObject entryPrefab;
 	public Text searchText;
 
-	private uint searchOffset = 0;
+	private int searchOffset = 0;
+	private string currentQuery = null;
 	private YleApi.JsonEvent onSuccess = new YleApi.JsonEvent();
 	private RectTransform rt;
 
 	void Start() {
-		onSuccess.AddListener(InitializeList);
+		onSuccess.AddListener(UpdateList);
 		rt = GetComponent<RectTransform>();
 	}
 
-	public void Search() {
+	public void NewSearch() {
+		// Delete all items and reset content size, so that the scroll bar disapears
 		foreach(Transform child in transform) {
 			Object.Destroy(child.gameObject);
 		}
-		UpdateList(searchText.text);
+		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 0);
+		currentQuery = searchText.text;
+		QueryNext();
 	}
 	
-	public void UpdateList(string query) {
+	public void QueryNext() {
 		api.Get("/v1/programs/items.json", new RequestArguments {
-			{"q", query},
+			{"q", currentQuery},
 			{"limit", searchLimit.ToString()},
 			{"offset", searchOffset.ToString()},
 		}, onSuccess);
 	}
 
-	private void InitializeList(JSONNode json) {
+	private void UpdateList(JSONNode json) {
 		var data = json["data"].AsArray;
-		// Debug.Log(data);
 		for(int i = 0; i < data.Count; i++) {
 			var obj = Object.Instantiate(entryPrefab, transform);
 			obj.GetComponent<Text>().text = data[i]["title"][0].Value;
 		}
-
+		searchOffset += searchLimit;
 		StartCoroutine(UpdateHeight());
 	}
 
@@ -52,5 +55,11 @@ public class ProgramList : MonoBehaviour {
 		// Vertical Layout will only be applied after Update phase, so wait a little
 		yield return new WaitForEndOfFrame();
 		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -lastRt.anchoredPosition.y + lastRt.rect.height);
+	}
+
+	public void QueryOnScrollEnd(float scroll) {
+		if(currentQuery != null && scroll <= 0.0) {
+			QueryNext();
+		}
 	}
 }
