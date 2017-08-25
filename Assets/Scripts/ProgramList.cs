@@ -13,53 +13,60 @@ public class ProgramList : MonoBehaviour {
 
 	private int searchOffset = 0;
 	private string currentQuery = null;
-	private YleApi.JsonEvent onSuccess = new YleApi.JsonEvent();
+	private YleApi.ResponseEvent onSuccess = new YleApi.ResponseEvent();
 	private RectTransform rt;
+	private float entryHeight;
 
 	void Start() {
 		onSuccess.AddListener(UpdateList);
 		rt = GetComponent<RectTransform>();
+		entryHeight = entryPrefab.GetComponent<RectTransform>().rect.height;
 	}
 
 	public void NewSearch() {
 		// Delete all items and reset content size, so that the scroll bar disapears
 		foreach(Transform child in transform) {
-			Object.Destroy(child.gameObject);
+			GameObject.Destroy(child.gameObject);
 		}
 		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 0);
+
 		currentQuery = searchText.text;
-		QueryNext();
+		var viewportHeight = rt.parent.GetComponent<RectTransform>().rect.height;
+		QueryNext((int) Mathf.Ceil(viewportHeight / entryHeight));
 	}
 	
-	public void QueryNext() {
+	public void QueryNext(int limit) {
 		api.Get("/v1/programs/items.json", new RequestArguments {
 			{"q", currentQuery},
-			{"limit", searchLimit.ToString()},
+			{"limit", limit.ToString()},
 			{"offset", searchOffset.ToString()},
 		}, onSuccess);
 	}
 
-	private void UpdateList(JSONNode json) {
+	private void UpdateList(string res) {
+		var json = JSON.Parse(res);
 		var data = json["data"].AsArray;
 		for(int i = 0; i < data.Count; i++) {
 			var obj = Object.Instantiate(entryPrefab, transform);
-			obj.GetComponent<Text>().text = data[i]["title"][0].Value;
+			obj.GetComponent<EntryItem>().Setup(data[i]["title"][0].Value);
 		}
-		searchOffset += searchLimit;
+		searchOffset += data.Count;
 		StartCoroutine(UpdateHeight());
 	}
 
 	// Update content height based on last child's position
 	private IEnumerator UpdateHeight() {
-		var lastRt = transform.GetChild(transform.childCount - 1).GetComponent<RectTransform>();
-		// Vertical Layout will only be applied after Update phase, so wait a little
-		yield return new WaitForEndOfFrame();
-		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -lastRt.anchoredPosition.y + lastRt.rect.height);
+		if(transform.childCount != 0) {
+			var lastRt = transform.GetChild(transform.childCount - 1).GetComponent<RectTransform>();
+			// Vertical Layout will only be applied after Update phase, so wait a little
+			yield return new WaitForEndOfFrame();
+			rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -lastRt.anchoredPosition.y + lastRt.rect.height);
+		}
 	}
 
 	public void QueryOnScrollEnd(float scroll) {
 		if(currentQuery != null && scroll <= 0.0) {
-			QueryNext();
+			QueryNext(searchLimit);
 		}
 	}
 }
