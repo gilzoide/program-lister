@@ -10,6 +10,7 @@ public class ProgramList : MonoBehaviour {
 	public int searchLimit = 10;
 	public GameObject entryPrefab;
 	public Text searchText;
+	public ProgramInfo programInfoPanel;
 
 	private int searchOffset = 0;
 	private string currentQuery = null;
@@ -24,7 +25,7 @@ public class ProgramList : MonoBehaviour {
 	}
 
 	public void NewSearch() {
-		// Delete all items and reset content size, so that the scroll bar disapears
+		// Delete items and reset content size, so that the scroll bar disapears
 		foreach(Transform child in transform) {
 			GameObject.Destroy(child.gameObject);
 		}
@@ -47,8 +48,12 @@ public class ProgramList : MonoBehaviour {
 		var json = JSON.Parse(res);
 		var data = json["data"].AsArray;
 		for(int i = 0; i < data.Count; i++) {
-			var obj = Object.Instantiate(entryPrefab, transform);
+			var obj = GameObject.Instantiate(entryPrefab, transform);
 			obj.GetComponent<EntryItem>().Setup(data[i]["title"][0].Value);
+			var yleId = data[i]["id"].Value;
+			obj.GetComponent<Button>().onClick.AddListener(() => {
+				api.Get("/v1/programs/items/" + yleId + ".json", null, programInfoPanel.onInfoLoaded);
+			});
 		}
 		searchOffset += data.Count;
 		StartCoroutine(UpdateHeight());

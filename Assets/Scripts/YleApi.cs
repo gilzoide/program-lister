@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Events;
 using UnityEngine.Networking;
 using SimpleJSON;
@@ -19,14 +20,23 @@ public class YleApi : MonoBehaviour {
 	private const string imageBaseUri = "http://images.cdn.yle.fi/image/upload/";
 	private const string baseArgs = "?app_id=66ede07d&app_key=86eadbc843d2b7ee59050e659aafd49d&";
 
+	// "Processing" circle
+	private GameObject circle;
+
+	void Start() {
+		circle = transform.GetChild(0).gameObject;
+	}
+
 	// Run a GET 
 	public void Get(string endpoint, RequestArguments args, ResponseEvent onSuccess) {
+		circle.SetActive(true);
 		StartCoroutine(ProcessRequest(endpoint, args, onSuccess));
 	}
 	private IEnumerator ProcessRequest(string endpoint, RequestArguments args, ResponseEvent onSuccess) {
 		using(UnityWebRequest www = UnityWebRequest.Get(baseUri + endpoint + baseArgs + args)) {
 			yield return www.Send();
 
+			circle.SetActive(false);
 			//if(www.isNetworkError || www.isHttpError) {
 			if(www.isError) {
 				onError.Invoke(www.error);
