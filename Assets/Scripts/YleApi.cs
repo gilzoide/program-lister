@@ -48,10 +48,11 @@ public class YleApi : MonoBehaviour {
 	}
 
 	// Run a GET on an image
-	void GetImage(string endpoint, ImageEvent onSuccess) {
+	public void GetImage(string endpoint, ImageEvent onSuccess) {
+		Debug.Log("Downloading image from: " + endpoint);
 		StartCoroutine(ProcessImageRequest(endpoint, onSuccess));
 	}
-	private IEnumerator ProcessImageRequest(string endpoint, ImageEvent onSuccess, ResponseEvent onError = null) {
+	private IEnumerator ProcessImageRequest(string endpoint, ImageEvent onSuccess) {
 		using(UnityWebRequest www = UnityWebRequest.GetTexture(imageBaseUri + endpoint + baseArgs, true)) {
 			yield return www.Send();
 

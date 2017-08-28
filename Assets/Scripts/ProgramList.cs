@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using SimpleJSON;
 
 public class ProgramList : MonoBehaviour {
-	public YleApi api;
+	public YleApi yleApi;
 	public int searchLimit = 10;
 	public GameObject entryPrefab;
 	public Text searchText;
@@ -25,19 +25,21 @@ public class ProgramList : MonoBehaviour {
 	}
 
 	public void NewSearch() {
-		// Delete items and reset content size, so that the scroll bar disapears
+		// Delete items and reset content size (don't zero it, as QueryOnScrollEnd would be called),
+		// so that the scroll bar disapears
 		foreach(Transform child in transform) {
 			GameObject.Destroy(child.gameObject);
 		}
-		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 0);
+		rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 10);
 
+		// First query should fill up the whole ScrollRect with entries
 		currentQuery = searchText.text;
 		var viewportHeight = rt.parent.GetComponent<RectTransform>().rect.height;
-		QueryNext((int) Mathf.Ceil(viewportHeight / entryHeight));
+		QueryNext((int) Mathf.Ceil(viewportHeight / entryHeight) + 1);
 	}
 	
 	public void QueryNext(int limit) {
-		api.Get("/v1/programs/items.json", new RequestArguments {
+		yleApi.Get("/v1/programs/items.json", new RequestArguments {
 			{"q", currentQuery},
 			{"limit", limit.ToString()},
 			{"offset", searchOffset.ToString()},
@@ -49,24 +51,12 @@ public class ProgramList : MonoBehaviour {
 		var data = json["data"].AsArray;
 		for(int i = 0; i < data.Count; i++) {
 			var obj = GameObject.Instantiate(entryPrefab, transform);
-			obj.GetComponent<EntryItem>().Setup(data[i]["title"][0].Value);
-			var yleId = data[i]["id"].Value;
-			obj.GetComponent<Button>().onClick.AddListener(() => {
-				api.Get("/v1/programs/items/" + yleId + ".json", null, programInfoPanel.onInfoLoaded);
-			});
+			var entry = obj.GetComponent<EntryItem>();
+			entry.Setup(yleApi, data[i]);
+			obj.GetComponent<Button>().onClick.AddListener(() => programInfoPanel.PopupInfo(entry));
 		}
 		searchOffset += data.Count;
-		StartCoroutine(UpdateHeight());
-	}
-
-	// Update content height based on last child's position
-	private IEnumerator UpdateHeight() {
-		if(transform.childCount != 0) {
-			var lastRt = transform.GetChild(transform.childCount - 1).GetComponent<RectTransform>();
-			// Vertical Layout will only be applied after Update phase, so wait a little
-			yield return new WaitForEndOfFrame();
-			rt.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, -lastRt.anchoredPosition.y + lastRt.rect.height);
-		}
+		StartCoroutine(rt.SetHeightAfterUpdate());
 	}
 
 	public void QueryOnScrollEnd(float scroll) {
