@@ -49,7 +49,6 @@ public class YleApi : MonoBehaviour {
 
 	// Run a GET on an image
 	public void GetImage(string endpoint, ImageEvent onSuccess) {
-		Debug.Log("Downloading image from: " + endpoint);
 		StartCoroutine(ProcessImageRequest(endpoint, onSuccess));
 	}
 	private IEnumerator ProcessImageRequest(string endpoint, ImageEvent onSuccess) {

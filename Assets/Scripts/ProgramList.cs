@@ -24,6 +24,7 @@ public class ProgramList : MonoBehaviour {
 		entryHeight = entryPrefab.GetComponent<RectTransform>().rect.height;
 	}
 
+	// Start a new search, resetting the list
 	public void NewSearch() {
 		// Delete items and reset content size (don't zero it, as QueryOnScrollEnd would be called),
 		// so that the scroll bar disapears
@@ -37,7 +38,8 @@ public class ProgramList : MonoBehaviour {
 		var viewportHeight = rt.parent.GetComponent<RectTransform>().rect.height;
 		QueryNext((int) Mathf.Ceil(viewportHeight / entryHeight) + 1);
 	}
-	
+
+	// Make a new query, appending the new items onto the list
 	public void QueryNext(int limit) {
 		yleApi.Get("/v1/programs/items.json", new RequestArguments {
 			{"q", currentQuery},
@@ -56,7 +58,6 @@ public class ProgramList : MonoBehaviour {
 			obj.GetComponent<Button>().onClick.AddListener(() => programInfoPanel.PopupInfo(entry));
 		}
 		searchOffset += data.Count;
-		StartCoroutine(rt.SetHeightAfterUpdate());
 	}
 
 	public void QueryOnScrollEnd(float scroll) {

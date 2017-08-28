@@ -14,6 +14,7 @@ public class EntryItem : MonoBehaviour {
 	public string subject;
 	public string type;
 	public string publicationEvent;
+	public string description;
 	public Texture2D texture = null;
 
 	private YleApi.ImageEvent onImage = new YleApi.ImageEvent();
@@ -43,10 +44,11 @@ public class EntryItem : MonoBehaviour {
 		allTitles = BuildTitles(data["title"].AsObject);
 		subject = BuildSubjects(data["subject"].AsArray);
 		publicationEvent = BuildPublicationEvents(data["publicationEvent"].AsArray);
+		description = BuildTitles(data["description"].AsObject);
 		type = AddSpacesBetweenCapital(data["type"].Value);
 
-		if(data["image"]) {
-			yleApi.GetImage(data["image"].Value + ".jpg", onImage);
+		if(data["image"]["available"]) {
+			yleApi.GetImage(data["image"]["id"].Value + ".jpg", onImage);
 		}
 	}
 
@@ -54,7 +56,7 @@ public class EntryItem : MonoBehaviour {
 	private string BuildTitles(JSONObject data, int level = 1) {
 		switch(data.Count) {
 			case 0:
-				return "-";
+				return "None";
 			case 1:
 				return data[0].Value;
 			default:
@@ -92,9 +94,15 @@ public class EntryItem : MonoBehaviour {
 		var lines = new string[data.Count];
 		var indent = new string(' ', 2 * level);
 		for(int i = 0; i < data.Count; i++) {
-			var startTime = DateTime.ParseExact(data[i]["startTime"].Value, pattern, null);
-			var endTime = DateTime.ParseExact(data[i]["endTime"].Value, pattern, null);
-			lines[i] = "\n" + indent + startTime.ToString("g") + " ~ " + endTime.ToString("g");
+			var startTime = DateTime.Parse(data[i]["startTime"].Value).ToString("g");
+			string endTime;
+			if(data[i]["endTime"]) {
+				endTime = " ~ " + DateTime.Parse(data[i]["endTime"].Value).ToString("g");
+			}
+			else {
+				endTime = "";
+			}
+			lines[i] = "\n" + indent + startTime + endTime;
 		}
 		return string.Join("", lines);
 	}
